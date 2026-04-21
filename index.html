@@ -25,22 +25,74 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+
+    /* ── モード切替タブ ── */
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .mode-tab {
+      padding: 8px 24px;
+      border-radius: 7px;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      transition: all 0.15s;
+    }
+    .mode-tab.active {
+      background: #6366f1;
+      color: #fff;
+    }
 
     .main { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 720px; }
 
-    .canvas-area {
+    .input-area {
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
+
+    /* ── キャンバス ── */
     #canvas {
       background: #fff;
       border-radius: 12px;
       cursor: crosshair;
       touch-action: none;
       box-shadow: 0 0 0 3px #334155;
+      display: block;
     }
-    .hint { font-size: 12px; color: #64748b; }
 
+    /* ── カメラ ── */
+    .camera-wrap {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 0 3px #334155;
+      background: #000;
+      display: none;
+    }
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+      border: 3px dashed rgba(99,102,241,0.6);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .hint { font-size: 12px; color: #64748b; }
     .btn-row { display: flex; gap: 8px; }
     .btn {
       padding: 9px 22px;
@@ -52,36 +104,23 @@
       transition: opacity 0.15s;
     }
     .btn:hover { opacity: 0.85; }
-    .btn-clear { background: #334155; color: #f1f5f9; }
+    .btn-clear  { background: #334155; color: #f1f5f9; }
     .btn-predict { background: #6366f1; color: #fff; }
     .btn-predict:disabled { background: #334155; color: #64748b; cursor: default; opacity: 1; }
+    .btn-camera { background: #0f766e; color: #fff; }
 
     .result-area {
-      flex: 1;
-      min-width: 220px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      flex: 1; min-width: 220px;
+      display: flex; flex-direction: column; gap: 12px;
     }
-
     .result-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 13px; font-weight: 700; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
-
     .winner-box {
-      background: #1e293b;
-      border-radius: 10px;
-      padding: 16px;
-      text-align: center;
-      border: 1px solid #334155;
-      min-height: 80px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      background: #1e293b; border-radius: 10px; padding: 16px;
+      text-align: center; border: 1px solid #334155;
+      min-height: 80px; display: flex; flex-direction: column; justify-content: center;
     }
     .winner-emoji { font-size: 48px; line-height: 1; }
     .winner-name  { font-size: 20px; font-weight: 800; margin-top: 4px; }
@@ -93,44 +132,48 @@
     .bar-label { display: flex; justify-content: space-between; font-size: 13px; }
     .bar-name  { display: flex; align-items: center; gap: 6px; }
     .bar-pct   { color: #94a3b8; font-size: 12px; }
-    .bar-track {
-      height: 8px;
-      background: #1e293b;
-      border-radius: 99px;
-      overflow: hidden;
-    }
-    .bar-fill {
-      height: 100%;
-      border-radius: 99px;
-      background: #6366f1;
-      transition: width 0.4s ease;
-    }
+    .bar-track { height: 8px; background: #1e293b; border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #6366f1; transition: width 0.4s ease; }
     .bar-fill.top { background: linear-gradient(90deg, #6366f1, #a78bfa); }
 
-    .status {
-      font-size: 13px;
-      color: #64748b;
-      text-align: center;
-      padding: 6px 0;
-    }
+    .status { font-size: 13px; color: #64748b; text-align: center; padding: 6px 0; }
     .status.loading { color: #60a5fa; }
     .status.error   { color: #f87171; }
   </style>
 </head>
 <body>
 
-<h1>🎨 AI お絵描き判定</h1>
-<p class="subtitle">動物の絵を描くと AI が判定します</p>
+<h1>🎨 AI 動物判定</h1>
+<p class="subtitle">キリン・うさぎ・ぞう・ライオン・ワニを認識します</p>
+
+<!-- モード切替 -->
+<div class="mode-tabs">
+  <button class="mode-tab active" onclick="switchMode('draw')">✏️ お絵描き</button>
+  <button class="mode-tab"        onclick="switchMode('camera')">📷 カメラ</button>
+</div>
 
 <div class="main">
-  <!-- 左：キャンバス -->
-  <div class="canvas-area">
+  <!-- 左：入力エリア -->
+  <div class="input-area">
+
+    <!-- お絵描きモード -->
     <canvas id="canvas" width="280" height="280"></canvas>
-    <p class="hint">マウス or タッチで描いてください</p>
-    <div class="btn-row">
+    <p class="hint" id="hint">マウス or タッチで描いてください</p>
+    <div class="btn-row" id="drawBtns">
       <button class="btn btn-clear" onclick="clearCanvas()">消す</button>
       <button class="btn btn-predict" id="predictBtn" onclick="predict()" disabled>判定する</button>
     </div>
+
+    <!-- カメラモード -->
+    <div class="camera-wrap" id="cameraWrap">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="camera-overlay"></div>
+    </div>
+    <div class="btn-row" id="cameraBtns" style="display:none">
+      <button class="btn btn-camera" id="startCamBtn" onclick="startCamera()">カメラ開始</button>
+      <button class="btn btn-predict" id="captureBtn" onclick="predictCamera()" disabled>判定する</button>
+    </div>
+
     <p class="status" id="status">モデルを読み込み中...</p>
   </div>
 
@@ -138,7 +181,7 @@
   <div class="result-area">
     <p class="result-title">判定結果</p>
     <div class="winner-box" id="winnerBox">
-      <p class="placeholder">絵を描いて「判定する」を押してください</p>
+      <p class="placeholder">判定するを押してください</p>
     </div>
     <div class="bar-list" id="barList"></div>
   </div>
@@ -146,14 +189,39 @@
 
 <script>
 const CATEGORIES = [
-  { name: 'キリン',   emoji: '🦒', en: 'giraffe'   },
-  { name: 'うさぎ',  emoji: '🐰', en: 'rabbit'    },
-  { name: 'ぞう',    emoji: '🐘', en: 'elephant'  },
-  { name: 'ライオン',emoji: '🦁', en: 'lion'      },
-  { name: 'ワニ',    emoji: '🐊', en: 'crocodile' },
+  { name: 'キリン',    emoji: '🦒', en: 'giraffe'   },
+  { name: 'うさぎ',   emoji: '🐰', en: 'rabbit'    },
+  { name: 'ぞう',     emoji: '🐘', en: 'elephant'  },
+  { name: 'ライオン', emoji: '🦁', en: 'lion'      },
+  { name: 'ワニ',     emoji: '🐊', en: 'crocodile' },
 ];
 
-// ── キャンバス設定 ──────────────────────────────────────
+let currentMode = 'draw';
+
+// ── モード切替 ───────────────────────────────────────────
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && mode === 'draw') || (i === 1 && mode === 'camera'));
+  });
+
+  const isDraw = mode === 'draw';
+  document.getElementById('canvas').style.display      = isDraw ? 'block' : 'none';
+  document.getElementById('drawBtns').style.display    = isDraw ? 'flex'  : 'none';
+  document.getElementById('cameraWrap').style.display  = isDraw ? 'none'  : 'block';
+  document.getElementById('cameraBtns').style.display  = isDraw ? 'none'  : 'flex';
+  document.getElementById('hint').textContent          = isDraw
+    ? 'マウス or タッチで描いてください'
+    : '動物の絵をカメラに向けてください';
+
+  if (!isDraw) {
+    resetResult();
+  } else {
+    stopCamera();
+  }
+}
+
+// ── キャンバス ───────────────────────────────────────────
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let drawing = false;
@@ -170,11 +238,9 @@ initCtx();
 
 function getPos(e) {
   const r = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / r.width;
-  const scaleY = canvas.height / r.height;
   return {
-    x: (e.clientX - r.left) * scaleX,
-    y: (e.clientY - r.top)  * scaleY,
+    x: (e.clientX - r.left) * (canvas.width / r.width),
+    y: (e.clientY - r.top)  * (canvas.height / r.height),
   };
 }
 
@@ -184,14 +250,12 @@ canvas.addEventListener('pointerdown', e => {
   drawing = true;
   const p = getPos(e);
   lastX = p.x; lastY = p.y;
-  // 点を打つ（クリックだけでも描ける）
   ctx.beginPath();
   ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
   ctx.fillStyle = ctx.strokeStyle;
   ctx.fill();
   hasDrawing = true;
 });
-
 canvas.addEventListener('pointermove', e => {
   if (!drawing) return;
   e.preventDefault();
@@ -203,7 +267,6 @@ canvas.addEventListener('pointermove', e => {
   lastX = p.x; lastY = p.y;
   hasDrawing = true;
 });
-
 canvas.addEventListener('pointerup',     () => { drawing = false; });
 canvas.addEventListener('pointercancel', () => { drawing = false; });
 
@@ -213,20 +276,60 @@ function clearCanvas() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   initCtx();
   hasDrawing = false;
-  const wb = document.getElementById('winnerBox');
-  const bl = document.getElementById('barList');
-  if (wb) wb.innerHTML = '<p class="placeholder">絵を描いて「判定する」を押してください</p>';
-  if (bl) bl.innerHTML = '';
+  resetResult();
 }
 
-// ── モデル読み込み ──────────────────────────────────────
+// ── カメラ ───────────────────────────────────────────────
+const video = document.getElementById('video');
+let stream = null;
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    video.srcObject = stream;
+    document.getElementById('startCamBtn').textContent = '📷 起動中';
+    document.getElementById('startCamBtn').disabled = true;
+    document.getElementById('captureBtn').disabled = !model;
+    setStatus(model ? '準備完了！判定するを押してください' : 'モデル読み込み待機中...', '');
+  } catch (e) {
+    setStatus('カメラへのアクセスが拒否されました', 'error');
+  }
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    video.srcObject = null;
+    document.getElementById('startCamBtn').textContent = 'カメラ開始';
+    document.getElementById('startCamBtn').disabled = false;
+    document.getElementById('captureBtn').disabled = true;
+  }
+}
+
+// ── 前処理（共通）───────────────────────────────────────
+function preprocessSource(source) {
+  const off = document.createElement('canvas');
+  off.width = 28; off.height = 28;
+  const oc = off.getContext('2d');
+  oc.drawImage(source, 0, 0, 28, 28);
+  const pixels = oc.getImageData(0, 0, 28, 28).data;
+  const gray = new Float32Array(28 * 28);
+  for (let i = 0; i < 28 * 28; i++) {
+    const lum = pixels[i*4] * 0.299 + pixels[i*4+1] * 0.587 + pixels[i*4+2] * 0.114;
+    gray[i] = (255 - lum) / 255.0;
+  }
+  return tf.tensor4d(gray, [1, 28, 28, 1]);
+}
+
+// ── モデル ───────────────────────────────────────────────
 let model = null;
 
 async function loadModel() {
   setStatus('モデルを読み込み中...', 'loading');
   try {
     model = await tf.loadLayersModel('./model/model.json');
-    setStatus('準備完了！絵を描いてください', '');
+    setStatus('準備完了！', '');
     document.getElementById('predictBtn').disabled = false;
   } catch (e) {
     setStatus('モデルの読み込みに失敗しました', 'error');
@@ -240,55 +343,25 @@ function setStatus(msg, cls) {
   el.className = 'status' + (cls ? ' ' + cls : '');
 }
 
-// ── 画像前処理 ──────────────────────────────────────────
-function preprocessCanvas() {
-  // 1. オフスクリーンキャンバスに 28x28 でリサイズ
-  const offscreen = document.createElement('canvas');
-  offscreen.width = 28; offscreen.height = 28;
-  const oc = offscreen.getContext('2d');
-
-  // Quick Draw は白背景に黒線 → グレースケール変換してそのまま使う
-  oc.drawImage(canvas, 0, 0, 280, 280, 0, 0, 28, 28);
-  const imgData = oc.getImageData(0, 0, 28, 28);
-  const pixels = imgData.data; // RGBA
-
-  // 学習データ: 黒線(高値)が特徴 → 白背景(255)を0, 黒線を255にする（反転）
-  const gray = new Float32Array(28 * 28);
-  for (let i = 0; i < 28 * 28; i++) {
-    // グレースケール化 & 反転 & 正規化
-    const r = pixels[i * 4], g = pixels[i * 4 + 1], b = pixels[i * 4 + 2];
-    const lum = (r * 0.299 + g * 0.587 + b * 0.114);
-    gray[i] = (255 - lum) / 255.0;
-  }
-  return tf.tensor4d(gray, [1, 28, 28, 1]);
-}
-
-// ── 判定 ─────────────────────────────────────────────────
-async function predict() {
-  if (!model || !hasDrawing) return;
-
+// ── 判定（共通） ─────────────────────────────────────────
+async function runPredict(source) {
+  if (!model) return;
   setStatus('判定中...', 'loading');
-  const input = preprocessCanvas();
+  const input = preprocessSource(source);
   const output = model.predict(input);
   const probs = await output.data();
   input.dispose(); output.dispose();
 
-  // 結果をソート
   const results = CATEGORIES.map((cat, i) => ({ ...cat, prob: probs[i] }))
     .sort((a, b) => b.prob - a.prob);
-
   const top = results[0];
 
-  // 1位表示
   document.getElementById('winnerBox').innerHTML = `
     <div class="winner-emoji">${top.emoji}</div>
     <div class="winner-name">${top.name}</div>
     <div class="winner-conf">${(top.prob * 100).toFixed(1)}% の確信度</div>
   `;
-
-  // バー表示
-  const barList = document.getElementById('barList');
-  barList.innerHTML = results.map((r, i) => `
+  document.getElementById('barList').innerHTML = results.map((r, i) => `
     <div class="bar-item">
       <div class="bar-label">
         <span class="bar-name">${r.emoji} ${r.name}</span>
@@ -299,10 +372,19 @@ async function predict() {
       </div>
     </div>
   `).join('');
-
   setStatus('');
 }
 
+function predict()       { if (hasDrawing) runPredict(canvas); }
+function predictCamera() { if (stream)     runPredict(video);  }
+
+function resetResult() {
+  document.getElementById('winnerBox').innerHTML = '<p class="placeholder">判定するを押してください</p>';
+  document.getElementById('barList').innerHTML = '';
+}
+
+// 初期化
+clearCanvas();
 loadModel();
 </script>
 </body>
