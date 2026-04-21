@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI お絵描き判定</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+
+    .main { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 720px; }
+
+    .canvas-area {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    #canvas {
+      background: #fff;
+      border-radius: 12px;
+      cursor: crosshair;
+      touch-action: none;
+      box-shadow: 0 0 0 3px #334155;
+    }
+    .hint { font-size: 12px; color: #64748b; }
+
+    .btn-row { display: flex; gap: 8px; }
+    .btn {
+      padding: 9px 22px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-clear { background: #334155; color: #f1f5f9; }
+    .btn-predict { background: #6366f1; color: #fff; }
+    .btn-predict:disabled { background: #334155; color: #64748b; cursor: default; opacity: 1; }
+
+    .result-area {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .result-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .winner-box {
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #334155;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .winner-emoji { font-size: 48px; line-height: 1; }
+    .winner-name  { font-size: 20px; font-weight: 800; margin-top: 4px; }
+    .winner-conf  { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+    .placeholder  { font-size: 14px; color: #475569; }
+
+    .bar-list { display: flex; flex-direction: column; gap: 8px; }
+    .bar-item { display: flex; flex-direction: column; gap: 3px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 13px; }
+    .bar-name  { display: flex; align-items: center; gap: 6px; }
+    .bar-pct   { color: #94a3b8; font-size: 12px; }
+    .bar-track {
+      height: 8px;
+      background: #1e293b;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: #6366f1;
+      transition: width 0.4s ease;
+    }
+    .bar-fill.top { background: linear-gradient(90deg, #6366f1, #a78bfa); }
+
+    .status {
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+      padding: 6px 0;
+    }
+    .status.loading { color: #60a5fa; }
+    .status.error   { color: #f87171; }
+  </style>
+</head>
+<body>
+
+<h1>🎨 AI お絵描き判定</h1>
+<p class="subtitle">動物の絵を描くと AI が判定します</p>
+
+<div class="main">
+  <!-- 左：キャンバス -->
+  <div class="canvas-area">
+    <canvas id="canvas" width="280" height="280"></canvas>
+    <p class="hint">マウス or タッチで描いてください</p>
+    <div class="btn-row">
+      <button class="btn btn-clear" onclick="clearCanvas()">消す</button>
+      <button class="btn btn-predict" id="predictBtn" onclick="predict()" disabled>判定する</button>
+    </div>
+    <p class="status" id="status">モデルを読み込み中...</p>
+  </div>
+
+  <!-- 右：結果 -->
+  <div class="result-area">
+    <p class="result-title">判定結果</p>
+    <div class="winner-box" id="winnerBox">
+      <p class="placeholder">絵を描いて「判定する」を押してください</p>
+    </div>
+    <div class="bar-list" id="barList"></div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  { name: 'キリン',   emoji: '🦒', en: 'giraffe'   },
+  { name: 'うさぎ',  emoji: '🐰', en: 'rabbit'    },
+  { name: 'ぞう',    emoji: '🐘', en: 'elephant'  },
+  { name: 'ライオン',emoji: '🦁', en: 'lion'      },
+  { name: 'ワニ',    emoji: '🐊', en: 'crocodile' },
+];
+
+// ── キャンバス設定 ──────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let hasDrawing = false;
+let lastX = 0, lastY = 0;
+
+function initCtx() {
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#111';
+}
+initCtx();
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  return {
+    x: (e.clientX - r.left) * scaleX,
+    y: (e.clientY - r.top)  * scaleY,
+  };
+}
+
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  canvas.setPointerCapture(e.pointerId);
+  drawing = true;
+  const p = getPos(e);
+  lastX = p.x; lastY = p.y;
+  // 点を打つ（クリックだけでも描ける）
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fill();
+  hasDrawing = true;
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!drawing) return;
+  e.preventDefault();
+  const p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  lastX = p.x; lastY = p.y;
+  hasDrawing = true;
+});
+
+canvas.addEventListener('pointerup',     () => { drawing = false; });
+canvas.addEventListener('pointercancel', () => { drawing = false; });
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  initCtx();
+  hasDrawing = false;
+  const wb = document.getElementById('winnerBox');
+  const bl = document.getElementById('barList');
+  if (wb) wb.innerHTML = '<p class="placeholder">絵を描いて「判定する」を押してください</p>';
+  if (bl) bl.innerHTML = '';
+}
+
+// ── モデル読み込み ──────────────────────────────────────
+let model = null;
+
+async function loadModel() {
+  setStatus('モデルを読み込み中...', 'loading');
+  try {
+    model = await tf.loadLayersModel('./model/model.json');
+    setStatus('準備完了！絵を描いてください', '');
+    document.getElementById('predictBtn').disabled = false;
+  } catch (e) {
+    setStatus('モデルの読み込みに失敗しました', 'error');
+    console.error(e);
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+// ── 画像前処理 ──────────────────────────────────────────
+function preprocessCanvas() {
+  // 1. オフスクリーンキャンバスに 28x28 でリサイズ
+  const offscreen = document.createElement('canvas');
+  offscreen.width = 28; offscreen.height = 28;
+  const oc = offscreen.getContext('2d');
+
+  // Quick Draw は白背景に黒線 → グレースケール変換してそのまま使う
+  oc.drawImage(canvas, 0, 0, 280, 280, 0, 0, 28, 28);
+  const imgData = oc.getImageData(0, 0, 28, 28);
+  const pixels = imgData.data; // RGBA
+
+  // 学習データ: 黒線(高値)が特徴 → 白背景(255)を0, 黒線を255にする（反転）
+  const gray = new Float32Array(28 * 28);
+  for (let i = 0; i < 28 * 28; i++) {
+    // グレースケール化 & 反転 & 正規化
+    const r = pixels[i * 4], g = pixels[i * 4 + 1], b = pixels[i * 4 + 2];
+    const lum = (r * 0.299 + g * 0.587 + b * 0.114);
+    gray[i] = (255 - lum) / 255.0;
+  }
+  return tf.tensor4d(gray, [1, 28, 28, 1]);
+}
+
+// ── 判定 ─────────────────────────────────────────────────
+async function predict() {
+  if (!model || !hasDrawing) return;
+
+  setStatus('判定中...', 'loading');
+  const input = preprocessCanvas();
+  const output = model.predict(input);
+  const probs = await output.data();
+  input.dispose(); output.dispose();
+
+  // 結果をソート
+  const results = CATEGORIES.map((cat, i) => ({ ...cat, prob: probs[i] }))
+    .sort((a, b) => b.prob - a.prob);
+
+  const top = results[0];
+
+  // 1位表示
+  document.getElementById('winnerBox').innerHTML = `
+    <div class="winner-emoji">${top.emoji}</div>
+    <div class="winner-name">${top.name}</div>
+    <div class="winner-conf">${(top.prob * 100).toFixed(1)}% の確信度</div>
+  `;
+
+  // バー表示
+  const barList = document.getElementById('barList');
+  barList.innerHTML = results.map((r, i) => `
+    <div class="bar-item">
+      <div class="bar-label">
+        <span class="bar-name">${r.emoji} ${r.name}</span>
+        <span class="bar-pct">${(r.prob * 100).toFixed(1)}%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill ${i === 0 ? 'top' : ''}" style="width:${(r.prob * 100).toFixed(1)}%"></div>
+      </div>
+    </div>
+  `).join('');
+
+  setStatus('');
+}
+
+loadModel();
+</script>
+</body>
+</html>
