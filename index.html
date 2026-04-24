@@ -10,8 +10,8 @@
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f172a;
-      color: #f1f5f9;
+      background: #ffffff;
+      color: #1e293b;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -35,20 +35,20 @@
       font-size: 20pt; /* PageTitleText */
       font-weight: 800;
       margin-bottom: 4px;
-      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .subtitle {
       font-size: 12px; /* StandardText */
-      color: #94a3b8;
+      color: #64748b;
     }
 
     /* ── モード切替タブ ── */
     .mode-tabs {
       display: flex;
       gap: 4px;
-      background: #1e293b;
+      background: #f1f5f9;
       border-radius: 6px; /* Standard shape */
       padding: 4px;
       margin-bottom: 25px; /* ContainerSpace */
@@ -62,11 +62,11 @@
       font-weight: 700;
       cursor: pointer;
       background: transparent;
-      color: #64748b;
+      color: #94a3b8;
       transition: all 0.15s;
     }
     .mode-tab.active {
-      background: #6366f1;
+      background: #B752E2; /* Info */
       color: #fff;
     }
 
@@ -93,7 +93,7 @@
       border-radius: 6px; /* Standard shape */
       cursor: crosshair;
       touch-action: none;
-      box-shadow: 0 0 0 3px #334155;
+      box-shadow: 0 0 0 2px #e2e8f0;
       display: block;
     }
 
@@ -104,7 +104,7 @@
       height: 280px;
       border-radius: 6px; /* Standard shape */
       overflow: hidden;
-      box-shadow: 0 0 0 3px #334155;
+      box-shadow: 0 0 0 2px #e2e8f0;
       background: #000;
       display: none;
     }
@@ -116,14 +116,14 @@
     .camera-overlay {
       position: absolute;
       inset: 0;
-      border: 3px dashed rgba(52,232,125,0.5); /* Success color accent */
+      border: 3px dashed rgba(183,82,226,0.5); /* Info color accent */
       border-radius: 6px;
       pointer-events: none;
     }
 
     .hint {
       font-size: 12px; /* StandardText */
-      color: #64748b;
+      color: #94a3b8;
     }
 
     /* ── ボタン共通 ── */
@@ -141,21 +141,32 @@
       transition: opacity 0.15s;
       min-width: 80px;
     }
-    .btn:hover { opacity: 0.85; }
+    .btn:hover { opacity: 0.82; }
 
-    /* Secondary: 消す / カメラ開始（S size: 38px） */
-    .btn-clear  { height: 38px; background: #334155; color: #f1f5f9; }
-    .btn-camera { height: 38px; background: #B752E2; color: #fff; } /* Info */
+    /* Secondary: 消す（S size: 38px） */
+    .btn-clear {
+      height: 38px; /* S size */
+      background: #ffffff;
+      color: #475569;
+      border: 1.5px solid #cbd5e1;
+    }
 
-    /* Primary: 判定する（M size: 60px） */
+    /* Secondary: カメラ開始（S size: 38px, Info） */
+    .btn-camera {
+      height: 38px; /* S size */
+      background: #B752E2; /* Info */
+      color: #fff;
+    }
+
+    /* Primary: 判定する（M size: 60px, Success） */
     .btn-predict {
-      height: 60px;
+      height: 60px; /* M size */
       background: #34E87D; /* Success */
       color: #0f172a;
     }
     .btn-predict:disabled {
-      background: #334155;
-      color: #64748b;
+      background: #e2e8f0;
+      color: #94a3b8;
       cursor: default;
       opacity: 0.5; /* Disabled */
     }
@@ -182,38 +193,38 @@
       letter-spacing: 0.05em;
     }
     .winner-box {
-      background: #1e293b;
+      background: #f8fafc;
       border-radius: 6px; /* Standard shape */
       padding: 16px; /* PanelPadding */
       text-align: center;
-      border: 1px solid #334155;
+      border: 1px solid #e2e8f0;
       min-height: 80px;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
     .winner-emoji { font-size: 48px; line-height: 1; }
-    .winner-name  { font-size: 20px; font-weight: 800; margin-top: 8px; } /* PanelTextSpace */
-    .winner-conf  { font-size: 12px; color: #94a3b8; margin-top: 8px; } /* PanelTextSpace / StandardText */
-    .placeholder  { font-size: 12px; color: #475569; } /* StandardText */
+    .winner-name  { font-size: 20px; font-weight: 800; color: #1e293b; margin-top: 8px; } /* PanelTextSpace */
+    .winner-conf  { font-size: 12px; color: #64748b; margin-top: 8px; } /* PanelTextSpace / StandardText */
+    .placeholder  { font-size: 12px; color: #94a3b8; } /* StandardText */
 
     .bar-list { display: flex; flex-direction: column; gap: 8px; } /* PanelTextSpace */
     .bar-item { display: flex; flex-direction: column; gap: 3px; }
-    .bar-label { display: flex; justify-content: space-between; font-size: 12px; } /* StandardText */
+    .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: #1e293b; } /* StandardText */
     .bar-name  { display: flex; align-items: center; gap: 6px; }
-    .bar-pct   { color: #94a3b8; font-size: 12px; } /* StandardText */
-    .bar-track { height: 8px; background: #1e293b; border-radius: 99px; overflow: hidden; }
-    .bar-fill  { height: 100%; border-radius: 99px; background: #475569; transition: width 0.4s ease; }
+    .bar-pct   { color: #64748b; font-size: 12px; } /* StandardText */
+    .bar-track { height: 8px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #cbd5e1; transition: width 0.4s ease; }
     .bar-fill.top { background: linear-gradient(90deg, #34E87D, #B752E2); } /* Success → Info */
 
     .status {
       font-size: 12px; /* StandardText */
-      color: #64748b;
+      color: #94a3b8;
       text-align: center;
       padding: 6px 0;
     }
-    .status.loading { color: #60a5fa; }
-    .status.error   { color: #f87171; }
+    .status.loading { color: #3b82f6; }
+    .status.error   { color: #ef4444; }
   </style>
 </head>
 <body>
