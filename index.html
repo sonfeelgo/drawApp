@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: #0f172a;
@@ -15,32 +16,49 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px 16px;
+      padding-top: 56px; /* HeaderSpace */
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-bottom: 24px;
+    }
+
+    /* ── ページヘッダー（PageTitleArea: 68px） ── */
+    .page-header {
+      min-height: 68px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 25px; /* ContainerSpace */
     }
     h1 {
-      font-size: 24px;
+      font-size: 20pt; /* PageTitleText */
       font-weight: 800;
       margin-bottom: 4px;
       background: linear-gradient(135deg, #60a5fa, #a78bfa);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+    .subtitle {
+      font-size: 12px; /* StandardText */
+      color: #94a3b8;
+    }
 
     /* ── モード切替タブ ── */
     .mode-tabs {
       display: flex;
       gap: 4px;
       background: #1e293b;
-      border-radius: 10px;
+      border-radius: 6px; /* Standard shape */
       padding: 4px;
-      margin-bottom: 20px;
+      margin-bottom: 25px; /* ContainerSpace */
     }
     .mode-tab {
-      padding: 8px 24px;
-      border-radius: 7px;
+      padding: 0 24px;
+      height: 38px; /* S size */
+      border-radius: 4px;
       border: none;
-      font-size: 14px;
+      font-size: 14px; /* ButtonLabelText */
       font-weight: 700;
       cursor: pointer;
       background: transparent;
@@ -52,16 +70,27 @@
       color: #fff;
     }
 
-    .main { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 720px; }
+    /* ── メインレイアウト ── */
+    .main {
+      display: flex;
+      gap: 25px; /* ContainerSpace */
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 720px;
+    }
 
     .input-area {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px; /* ElemmentSpaceY */
     }
 
     /* ── キャンバス ── */
     #canvas {
       background: #fff;
-      border-radius: 12px;
+      border-radius: 6px; /* Standard shape */
       cursor: crosshair;
       touch-action: none;
       box-shadow: 0 0 0 3px #334155;
@@ -73,7 +102,7 @@
       position: relative;
       width: 280px;
       height: 280px;
-      border-radius: 12px;
+      border-radius: 6px; /* Standard shape */
       overflow: hidden;
       box-shadow: 0 0 0 3px #334155;
       background: #000;
@@ -87,64 +116,113 @@
     .camera-overlay {
       position: absolute;
       inset: 0;
-      border: 3px dashed rgba(99,102,241,0.6);
-      border-radius: 12px;
+      border: 3px dashed rgba(52,232,125,0.5); /* Success color accent */
+      border-radius: 6px;
       pointer-events: none;
     }
 
-    .hint { font-size: 12px; color: #64748b; }
-    .btn-row { display: flex; gap: 8px; }
+    .hint {
+      font-size: 12px; /* StandardText */
+      color: #64748b;
+    }
+
+    /* ── ボタン共通 ── */
+    .btn-row {
+      display: flex;
+      gap: 16px; /* ElemmentSpaceX */
+    }
     .btn {
-      padding: 9px 22px;
-      border-radius: 8px;
+      padding: 0 22px;
+      border-radius: 6px; /* Standard shape */
       border: none;
-      font-size: 14px;
+      font-size: 14px; /* ButtonLabelText */
       font-weight: 700;
       cursor: pointer;
       transition: opacity 0.15s;
+      min-width: 80px;
     }
     .btn:hover { opacity: 0.85; }
-    .btn-clear  { background: #334155; color: #f1f5f9; }
-    .btn-predict { background: #6366f1; color: #fff; }
-    .btn-predict:disabled { background: #334155; color: #64748b; cursor: default; opacity: 1; }
-    .btn-camera { background: #0f766e; color: #fff; }
 
+    /* Secondary: 消す / カメラ開始（S size: 38px） */
+    .btn-clear  { height: 38px; background: #334155; color: #f1f5f9; }
+    .btn-camera { height: 38px; background: #B752E2; color: #fff; } /* Info */
+
+    /* Primary: 判定する（M size: 60px） */
+    .btn-predict {
+      height: 60px;
+      background: #34E87D; /* Success */
+      color: #0f172a;
+    }
+    .btn-predict:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: default;
+      opacity: 0.5; /* Disabled */
+    }
+
+    /* レスポンシブ: 600px以下はフルwidth */
+    @media (max-width: 600px) {
+      .btn-row { flex-direction: column; width: 280px; }
+      .btn { width: 100%; }
+    }
+
+    /* ── 結果エリア ── */
     .result-area {
-      flex: 1; min-width: 220px;
-      display: flex; flex-direction: column; gap: 12px;
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px; /* ElemmentSpaceY */
     }
     .result-title {
-      font-size: 13px; font-weight: 700; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: 0.05em;
+      font-size: 12px; /* StandardText */
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     .winner-box {
-      background: #1e293b; border-radius: 10px; padding: 16px;
-      text-align: center; border: 1px solid #334155;
-      min-height: 80px; display: flex; flex-direction: column; justify-content: center;
+      background: #1e293b;
+      border-radius: 6px; /* Standard shape */
+      padding: 16px; /* PanelPadding */
+      text-align: center;
+      border: 1px solid #334155;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .winner-emoji { font-size: 48px; line-height: 1; }
-    .winner-name  { font-size: 20px; font-weight: 800; margin-top: 4px; }
-    .winner-conf  { font-size: 13px; color: #94a3b8; margin-top: 2px; }
-    .placeholder  { font-size: 14px; color: #475569; }
+    .winner-name  { font-size: 20px; font-weight: 800; margin-top: 8px; } /* PanelTextSpace */
+    .winner-conf  { font-size: 12px; color: #94a3b8; margin-top: 8px; } /* PanelTextSpace / StandardText */
+    .placeholder  { font-size: 12px; color: #475569; } /* StandardText */
 
-    .bar-list { display: flex; flex-direction: column; gap: 8px; }
+    .bar-list { display: flex; flex-direction: column; gap: 8px; } /* PanelTextSpace */
     .bar-item { display: flex; flex-direction: column; gap: 3px; }
-    .bar-label { display: flex; justify-content: space-between; font-size: 13px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 12px; } /* StandardText */
     .bar-name  { display: flex; align-items: center; gap: 6px; }
-    .bar-pct   { color: #94a3b8; font-size: 12px; }
+    .bar-pct   { color: #94a3b8; font-size: 12px; } /* StandardText */
     .bar-track { height: 8px; background: #1e293b; border-radius: 99px; overflow: hidden; }
-    .bar-fill  { height: 100%; border-radius: 99px; background: #6366f1; transition: width 0.4s ease; }
-    .bar-fill.top { background: linear-gradient(90deg, #6366f1, #a78bfa); }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #475569; transition: width 0.4s ease; }
+    .bar-fill.top { background: linear-gradient(90deg, #34E87D, #B752E2); } /* Success → Info */
 
-    .status { font-size: 13px; color: #64748b; text-align: center; padding: 6px 0; }
+    .status {
+      font-size: 12px; /* StandardText */
+      color: #64748b;
+      text-align: center;
+      padding: 6px 0;
+    }
     .status.loading { color: #60a5fa; }
     .status.error   { color: #f87171; }
   </style>
 </head>
 <body>
 
-<h1>🎨 AI 動物判定</h1>
-<p class="subtitle">キリン・うさぎ・ぞう・ライオン・ワニを認識します</p>
+<!-- ページヘッダー（PageTitleArea: 68px） -->
+<div class="page-header">
+  <h1>🎨 AI 動物判定</h1>
+  <p class="subtitle">キリン・うさぎ・ぞう・ライオン・ワニを認識します</p>
+</div>
 
 <!-- モード切替 -->
 <div class="mode-tabs">
